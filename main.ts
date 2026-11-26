@@ -32,7 +32,9 @@ if (length < 1 || length > 120 || LINE.trim().length === 0) {
 // (109 code points, the way the gate counts) and nothing else. Then read it
 // back and refuse to finish unless the file is byte-identical to LINE and
 // still inside the 1-120 gate, so a run that wrote anything else fails
-// loudly instead of passing a bad entry.
+// loudly instead of passing a bad entry. Also check the byte length, not
+// just the code-point length: a stray multi-byte character or a BOM would
+// pass the character gate yet change the bytes the judge reads.
 const dir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 mkdirSync(dir, { recursive: true });
 const target = join(dir, "entry.txt");
@@ -44,4 +46,8 @@ if (written !== LINE) {
 const writtenLength = [...written].length;
 if (writtenLength < 1 || writtenLength > 120) {
   throw new Error(`entry.txt is ${writtenLength} chars, outside the 1-120 gate`);
+}
+const writtenBytes = Buffer.byteLength(written, "utf-8");
+if (writtenBytes !== Buffer.byteLength(LINE, "utf-8")) {
+  throw new Error(`entry.txt is ${writtenBytes} bytes, expected ${Buffer.byteLength(LINE, "utf-8")}`);
 }
